@@ -127,31 +127,31 @@ class SchedulerWindow(QWidget):
         self.setLayout(self.app_layout)
 
     def monday_clicked(self):
-        slot = self.start_hour_fields[0].text() + ":" + self.start_minute_fields[0].text() + " - " \
+        slot = self.start_hour_fields[0].text() + ":" + self.start_minute_fields[0].text() + "-" \
                + self.end_hour_fields[0].text() + ":" + self.end_minute_fields[0].text()
         self.monday_slots.append(slot)
         self.registered_slot_labels[0].setText(str(self.monday_slots))
 
     def tuesday_clicked(self):
-        slot = self.start_hour_fields[1].text() + ":" + self.start_minute_fields[1].text() + " - " \
+        slot = self.start_hour_fields[1].text() + ":" + self.start_minute_fields[1].text() + "-" \
                + self.end_hour_fields[1].text() + ":" + self.end_minute_fields[1].text()
         self.tuesday_slots.append(slot)
         self.registered_slot_labels[1].setText(str(self.tuesday_slots))
 
     def wednesday_clicked(self):
-        slot = self.start_hour_fields[2].text() + ":" + self.start_minute_fields[2].text() + " - " \
+        slot = self.start_hour_fields[2].text() + ":" + self.start_minute_fields[2].text() + "-" \
                + self.end_hour_fields[2].text() + ":" + self.end_minute_fields[2].text()
         self.wednesday_slots.append(slot)
         self.registered_slot_labels[2].setText(str(self.wednesday_slots))
 
     def thursday_clicked(self):
-        slot = self.start_hour_fields[3].text() + ":" + self.start_minute_fields[3].text() + " - " \
+        slot = self.start_hour_fields[3].text() + ":" + self.start_minute_fields[3].text() + "-" \
                + self.end_hour_fields[3].text() + ":" + self.end_minute_fields[3].text()
         self.thursday_slots.append(slot)
         self.registered_slot_labels[3].setText(str(self.thursday_slots))
 
     def friday_clicked(self):
-        slot = self.start_hour_fields[4].text() + ":" + self.start_minute_fields[4].text() + " - " \
+        slot = self.start_hour_fields[4].text() + ":" + self.start_minute_fields[4].text() + "-" \
                + self.end_hour_fields[4].text() + ":" + self.end_minute_fields[4].text()
         self.friday_slots.append(slot)
         self.registered_slot_labels[0].setText(str(self.friday_slots))
