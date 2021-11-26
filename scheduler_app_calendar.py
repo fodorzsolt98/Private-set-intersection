@@ -1,5 +1,3 @@
-import string
-
 from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QPushButton, QMenu, QMenuBar
 from PyQt5.QtGui import QPainter, QPen
 from PyQt5.QtCore import Qt, QEventLoop
@@ -8,6 +6,8 @@ from random import randint, choice
 from Meeting import Meeting
 from MeetingInfoPage import MeetingInfoPage
 import sys
+import string
+
 
 class SchedulerWindow(QMainWindow):
     def __init__(self):
@@ -146,18 +146,26 @@ class SchedulerWindow(QMainWindow):
                 label.setGeometry(self.tableLeft + meeting.startDate.weekday() * 100 + 2, self.tableTop + int(meeting.startTime / 2.5), 96, int(meeting.length / 2.5))
                 label.setText(meeting.title)
                 label.setStyleSheet("background-color:#315dd6;padding:2px;border-radius:2px;")
-                label.mouseDoubleClickEvent = lambda e: self.meetingLabelDoubleClicked(meeting)
+                label.meeting = meeting
+                label.mouseDoubleClickEvent = self.meetingLabelDoubleClicked
                 label.setParent(self.centralwidget)
                 label.show()
                 self.meetingLabels.append(label)
 
+    def getMeetingLabelByPos(self, pos):
+        for label in self.meetingLabels:
+            if ((label.x() < pos.x()) and (label.x() + label.width() > pos.x())) and ((label.y() < pos.y()) and (label.y() + label.height() > pos.y())):
+                return label
+        return None
 
-    def meetingLabelDoubleClicked(self, meeting):
-        infoPage = MeetingInfoPage(meeting)
-        infoPage.show()
-        loop = QEventLoop()
-        infoPage.closeEvent = lambda e: loop.quit()
-        loop.exec()
+    def meetingLabelDoubleClicked(self, e):
+        meetingLabel = self.getMeetingLabelByPos(e.windowPos())
+        if meetingLabel:
+            infoPage = MeetingInfoPage(meetingLabel.meeting)
+            infoPage.show()
+            loop = QEventLoop()
+            infoPage.closeEvent = lambda e: loop.quit()
+            loop.exec()
 
 
 def runApp():

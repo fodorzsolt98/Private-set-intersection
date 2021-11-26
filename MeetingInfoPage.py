@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QTextEdit
+from PyQt5.QtWidgets import QMainWindow, QLabel, QWidget, QTextEdit
 from PyQt5.QtCore import Qt
 
 class MeetingInfoPage(QMainWindow):
