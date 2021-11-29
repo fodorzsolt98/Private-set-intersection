@@ -1,5 +1,5 @@
 class Meeting:
-    def __init__(self, startDate, startTime, length, title, description=''):
+    def __init__(self, startDate, startTime, length, title='', description=''):
         self.startDate = startDate
         self.startTime = startTime
         self.length = length
@@ -15,6 +15,9 @@ class Meeting:
         h = (self.startTime + self.length) // 60
         m = (self.startTime + self.length) % 60
         return f'{"0" + str(h) if h < 10 else h}:{"0" + str(m) if m < 10 else m}'
+
+    def getDateAndTime(self):
+        return f'{self.startDate}: {self.getStartTime()} - {self.getEndTime()}'
 
     def print(self):
         print(f'The {self.title} meeting is in {self.startDate.strftime("%Y-%m-%d")}, from {self.getStartTime()} to {self.getEndTime()}')

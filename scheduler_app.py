@@ -1,132 +1,131 @@
-from PyQt5.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QLineEdit, QWidget
+from PyQt5.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QLineEdit, QWidget, QComboBox, QTextEdit
 from functools import partial
 import sys
+from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QPushButton, QMenu, QMenuBar
+from PyQt5.QtGui import QPainter, QPen, QRegularExpressionValidator
+from PyQt5.QtCore import Qt, QEventLoop, QRegularExpression
+from datetime import date, timedelta
+from random import randint, choice
+from Meeting import Meeting
+from MeetingInfoPage import MeetingInfoPage
+import sys
+import string
 
-class SchedulerWindow(QWidget):
+class SchedulerWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Privacy preserving scheduling app")
-        self.day_labels = []
-        self.start_hour_fields = []
-        self.start_minute_fields = []
-        self.end_hour_fields = []
-        self.end_minute_fields = []
-        self.add_buttons = []
-        self.registered_slot_labels = []
+        self.title='Reserve new meeting'
+        self.width = 720
+        self.height = 330
+        self.dateLables = []
+        self.currentWeekStart = date.today() - timedelta(days=(date.today().weekday()))
+        self.meetings = []
+        self.initWindow()
+        self.initUI()
 
-        self.main_layout = QVBoxLayout()
+    def initWindow(self):
+        self.setWindowTitle(self.title)
+        self.setFixedSize(self.width, self.height)
+        self.centralwidget = QWidget(self)
+        self.centralwidget.setGeometry(0, 0, self.width, self.height)
 
-        self.header_layout = QHBoxLayout()
-        self.app_layout = QHBoxLayout()
-
-        self.days_layout = QVBoxLayout()
-        self.start_hours_layout = QVBoxLayout()
-        self.start_minutes_layout = QVBoxLayout()
-        self.end_hours_layout = QVBoxLayout()
-        self.end_minutes_layout = QVBoxLayout()
-        self.adds_layout = QVBoxLayout()
-        self.registered_slots_layout = QVBoxLayout()
-
-        self.slots = {}
-
-        self.init_UI()
-
-    def init_UI(self):
+    def initUI(self):
 
         days_list = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
-        days_label = QLabel()
-        days_label.setText("Days")
-        self.days_layout.addWidget(days_label)
+        label = QLabel(self.centralwidget)
+        label.setGeometry(155, 10, 50, 30)
+        label.setText('From')
 
-        start_hours_label = QLabel()
-        start_hours_label.setText("Start hours")
-        self.start_hours_layout.addWidget(start_hours_label)
+        label = QLabel(self.centralwidget)
+        label.setGeometry(280, 10, 50, 30)
+        label.setText('To')
 
-        start_minutes_label = QLabel()
-        start_minutes_label.setText("Start minutes")
-        self.start_minutes_layout.addWidget(start_minutes_label)
+        label = QLabel(self.centralwidget)
+        label.setGeometry(500, 10, 100, 30)
+        label.setText('Registered meetings')
 
-        end_hours_label = QLabel()
-        end_hours_label.setText("End hours")
-        self.end_hours_layout.addWidget(end_hours_label)
+        registeredMeetingLabel = QTextEdit(self.centralwidget)
+        registeredMeetingLabel.setReadOnly(True)
+        registeredMeetingLabel.setStyleSheet("background-color:transparent;font-size:15px;padding:2px;border-radius:2px;")
+        registeredMeetingLabel.setGeometry(460, 50, 250, 230)
 
-        end_minutes_label = QLabel()
-        end_minutes_label.setText("End minutes")
-        self.end_minutes_layout.addWidget(end_minutes_label)
+        today = date.today()
+        weekDay = today.weekday()
 
-        adds_label = QLabel()
-        adds_label.setText("Registration buttons")
-        self.adds_layout.addWidget(adds_label)
+        previousWeekButton = QPushButton(self.centralwidget)
+        previousWeekButton.setGeometry(10, 10, 40, 20)
+        previousWeekButton.setText('<')
+        previousWeekButton.clicked.connect(self.previousWeekButtonClicked)
 
-        registered_slots_label = QLabel()
-        registered_slots_label.setText("Registered slots")
-        self.registered_slots_layout.addWidget(registered_slots_label)
+        nextWeekButton = QPushButton(self.centralwidget)
+        nextWeekButton.setGeometry(50, 10, 40, 20)
+        nextWeekButton.setText('>')
+        nextWeekButton.clicked.connect(self.nextWeekButtonClicked)
+
+        checkTimeWithPartner = QPushButton(self.centralwidget)
+        checkTimeWithPartner.setGeometry(500, 290, 150, 30)
+        checkTimeWithPartner.setText('Check with partner')
+        checkTimeWithPartner.clicked.connect(self.previousWeekButtonClicked)
 
         for i in range(0, len(days_list)):
 
-            self.slots[days_list[i].lower()] = []
+            label = QLabel(self.centralwidget)
+            label.setGeometry(10, 50 + i * 40, 100, 20)
+            label.setText(days_list[i])
 
-            day_label = QLabel()
-            day_label.setFixedSize(80, 30)
-            day_label.setText(days_list[i])
-            self.day_labels.append(day_label)
-            self.days_layout.addWidget(day_label)
+            label = QLabel(self.centralwidget)
+            label.setGeometry(10, 65 + i * 40, 100, 20)
+            label.setText((today + timedelta(days=(i - weekDay))).strftime("%Y-%m-%d"))
+            self.dateLables.append(label)
 
-            start_hour_field = QLineEdit()
-            start_hour_field.setFixedSize(50, 30)
-            self.start_hour_fields.append(start_hour_field)
-            self.start_hours_layout.addWidget(start_hour_field)
+            startHour, startMinute = self.createTimeInputGUI(110, i)
+            endHour, endMinute = self.createTimeInputGUI(230, i)
 
-            start_minute_field = QLineEdit()
-            start_minute_field.setFixedSize(50, 30)
-            self.start_minute_fields.append(start_minute_field)
-            self.start_minutes_layout.addWidget(start_minute_field)
+            addButton = QPushButton(self.centralwidget)
+            addButton.setGeometry(350, 50 + i * 40, 100, 30)
+            addButton.setText('Add')
 
-            end_hour_field = QLineEdit()
-            end_hour_field.setFixedSize(50, 30)
-            self.end_hour_fields.append(end_hour_field)
-            self.end_hours_layout.addWidget(end_hour_field)
+            addButton.clicked.connect(partial(self.registrationClicked
+                                               , startHour
+                                               , startMinute
+                                               , endHour
+                                               , endMinute
+                                               , i
+                                               , registeredMeetingLabel))
 
-            end_minute_field = QLineEdit()
-            end_minute_field.setFixedSize(50, 30)
-            self.end_minute_fields.append(end_minute_field)
-            self.end_minutes_layout.addWidget(end_minute_field)
+    def registrationClicked(self, startHour, startMinute, endHour, endMinute, daydiff, label):
+        if startHour.text() and endHour.text():
+            startTime = int(startHour.text()) * 60 + int(startMinute.currentText())
+            endTime = int(endHour.text()) * 60 + int(endMinute.currentText())
+            meeting = Meeting(self.currentWeekStart + timedelta(days=daydiff), startTime, endTime - startTime)
+            self.meetings.append(meeting)
+            label.append(meeting.getDateAndTime())
 
-            registered_slot_label = QLabel()
-            self.registered_slot_labels.append(registered_slot_label)
-            self.registered_slots_layout.addWidget(registered_slot_label)
+    def createTimeInputGUI(self, left, iteration):
+        hour = QLineEdit(self.centralwidget)
+        hour.setGeometry(left, 50 + iteration * 40, 50, 30)
+        hour.setValidator(QRegularExpressionValidator(QRegularExpression("(2[0-3]|1[0-9]|[0-9])"), self))
 
-            add_button = QPushButton()
-            add_button.setFixedSize(80, 30)
+        label = QLabel(self.centralwidget)
+        label.setGeometry(left + 55, 50 + iteration * 40, 5, 30)
+        label.setText(':')
 
-            add_button.clicked.connect(partial(self.registrationClicked
-                                               , start_hour_field
-                                               , start_minute_field
-                                               , end_hour_field
-                                               , end_minute_field
-                                               , registered_slot_label
-                                               , self.slots[days_list[i].lower()]))
+        minute = QComboBox(self.centralwidget)
+        minute.setGeometry(left + 60, 50 + iteration * 40, 50, 30)
+        minute.addItems(['00', '15', '30', '45'])
+        return hour, minute
 
+    def dateRefresh(self, direction):
+        self.currentWeekStart = self.currentWeekStart + timedelta(days=(direction * 7))
+        for i in range(0, 7):
+            self.dateLables[i].setText((self.currentWeekStart + timedelta(days=i)).strftime("%Y-%m-%d"))
 
-            self.add_buttons.append(add_button)
-            self.adds_layout.addWidget(add_button)
+    def previousWeekButtonClicked(self):
+        self.dateRefresh(-1)
 
-
-        self.app_layout.addLayout(self.days_layout)
-        self.app_layout.addLayout(self.start_hours_layout)
-        self.app_layout.addLayout(self.start_minutes_layout)
-        self.app_layout.addLayout(self.end_hours_layout)
-        self.app_layout.addLayout(self.end_minutes_layout)
-        self.app_layout.addLayout(self.adds_layout)
-        self.app_layout.addLayout(self.registered_slots_layout)
-
-        self.setLayout(self.app_layout)
-
-    def registrationClicked(self, start_hour_field, start_minute_field, end_hour_field, end_minute_field, registered_slot_labels, day_slots):
-        day_slots.append(start_hour_field.text() + ':' + start_minute_field.text() + ' - ' \
-                            + end_hour_field.text() + ':' + end_minute_field.text())
-        registered_slot_labels.setText(str(day_slots))
+    def nextWeekButtonClicked(self):
+        self.dateRefresh(1)
 
 
 def run_app():
