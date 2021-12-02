@@ -1,10 +1,14 @@
 from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QPushButton, QMenu, QMenuBar
 from PyQt5.QtGui import QPainter, QPen
-from PyQt5.QtCore import Qt, QEventLoop
+from PyQt5.QtCore import Qt, QEventLoop, QSize
 from datetime import date, timedelta
 from random import randint, choice
 from Meeting import Meeting
 from MeetingInfoPage import MeetingInfoPage
+from AddNewMeetingPage import AddNewMeetingPage
+from ConnectToPartnerPage import ConnectToPartnerPage
+from NetworkInterface import NetworkInterface
+from MessageWindows import WarningMessageWindow
 import sys
 import string
 
@@ -21,11 +25,12 @@ class SchedulerWindow(QMainWindow):
         self.currentWeekStart = date.today() - timedelta(days=(date.today().weekday()))
         self.meetings = {}
         self.meetingLabels = []
+        self.networkInterface = NetworkInterface(5555)
+        self.networkInterface.startServer()
         #Remove dummy meetings in release
         self.dummyMeetings(10, date.today() - timedelta(days=3),  date.today() - timedelta(days=10))
         #--------------------------------
         self.initWindow()
-
 
     def dummyMeetings(self, count, start, end):
         dateDiff = abs((end - start).days)
@@ -39,11 +44,10 @@ class SchedulerWindow(QMainWindow):
                 self.meetings[y][w] = []
             self.meetings[y][w].append(Meeting(
                 startDate=rdate,
-                startTime=randint(50, 260) *5,
+                startTime=randint(50, 260) * 5,
                 length=randint(6, 24) * 5,
                 title=''.join(choice(string.ascii_lowercase) for i in range(randint(5, 20))),
                 description=''.join(choice(string.ascii_lowercase) for i in range(randint(20, 100)))))
-
 
     def initWindow(self):
         self.setWindowTitle(self.title)
@@ -54,6 +58,10 @@ class SchedulerWindow(QMainWindow):
         self.initTableGUI()
         self.show()
 
+    def closeEvent(self, e):
+        window = WarningMessageWindow('Application is closing', 'The application is closing, the server will stop and the client services will be aborted.')
+        window.exec_()
+        self.networkInterface.stopServer()
 
     def paintEvent(self, e):
         painter = QPainter(self)
@@ -67,56 +75,72 @@ class SchedulerWindow(QMainWindow):
         painter.setPen(QPen(Qt.black, 5, Qt.SolidLine))
         painter.drawRect(self.tableLeft, self.tableTop, 700, 576)
 
-
     def initMenu(self):
         self.menuBar = QMenuBar(self)
         self.setMenuBar(self.menuBar)
         addNew = QMenu('&Add new', self)
+        addNew.mouseReleaseEvent = self.addNewMeetingClicked
+        test = QMenu('&test connetcion', self)
+        test.mouseReleaseEvent = self.testConnection
         self.menuBar.addMenu(addNew)
+        self.menuBar.addMenu(test)
 
+    def testConnection(self, e):
+        meetings = []
+        meetings.append(Meeting(date.today(), 75, 60))
+        self.connectToPartener(meetings)
+
+    def addNewMeetingClicked(self, e):
+        newMeetingPage = AddNewMeetingPage()
+        newMeetingPage.show()
+        loop = QEventLoop()
+        newMeetingPage.closeEvent = lambda e: loop.quit()
+        loop.exec()
+        if newMeetingPage.connectToPartner and (len(newMeetingPage.meetings) > 0):
+            self.connectToPartener(newMeetingPage.meetings)
+
+    def connectToPartener(self, meetings):
+        connectionPage = ConnectToPartnerPage(self.networkInterface, meetings)
+        connectionPage.show()
+        loop = QEventLoop()
+        connectionPage.closeEvent = lambda e: loop.quit()
+        loop.exec()
 
     def initTableGUI(self):
         daysList = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
         for i in range(0, len(daysList)):
-            label = QLabel()
+            label = QLabel(self.centralwidget)
             label.setGeometry(self.tableLeft + 30 + i * 100, self.tableTop - 50, 100, 20)
             label.setText(daysList[i])
-            label.setParent(self.centralwidget)
 
         today = date.today()
         weekDay = today.weekday()
         for i in range(0, 7):
-            label = QLabel()
+            label = QLabel(self.centralwidget)
             label.setGeometry(self.tableLeft + 20 + i * 100, self.tableTop - 25, 100, 20)
             label.setText((today + timedelta(days=(i - weekDay))).strftime("%Y-%m-%d"))
-            label.setParent(self.centralwidget)
             self.dateLables.append(label)
 
         for i in range(0, 10):
-            label = QLabel()
+            label = QLabel(self.centralwidget)
             label.setGeometry(self.tableLeft - 40, self.tableTop + i * 24, 40, 24)
             label.setText(f'0{i}:00')
-            label.setParent(self.centralwidget)
         for i in range(10, 24):
-            label = QLabel()
+            label = QLabel(self.centralwidget)
             label.setGeometry(self.tableLeft - 40, self.tableTop + i * 24, 40, 24)
             label.setText(f'{i}:00')
-            label.setParent(self.centralwidget)
 
         self.loadMeetings()
 
-        previousWeekButton = QPushButton()
+        previousWeekButton = QPushButton(self.centralwidget)
         previousWeekButton.setGeometry(5, self.tableTop - 20, 40, 20)
         previousWeekButton.setText('<')
-        previousWeekButton.setParent(self.centralwidget)
         previousWeekButton.clicked.connect(self.previousWeekButtonClicked)
 
-        nextWeekButton = QPushButton()
+        nextWeekButton = QPushButton(self.centralwidget)
         nextWeekButton.setGeometry(self.tableLeft + 705, self.tableTop - 20, 40, 20)
         nextWeekButton.setText('>')
-        nextWeekButton.setParent(self.centralwidget)
         nextWeekButton.clicked.connect(self.nextWeekButtonClicked)
-
 
     def dateRefresh(self, direction):
         self.currentWeekStart = self.currentWeekStart + timedelta(days=(direction * 7))
@@ -124,14 +148,11 @@ class SchedulerWindow(QMainWindow):
             self.dateLables[i].setText((self.currentWeekStart + timedelta(days=i)).strftime("%Y-%m-%d"))
         self.loadMeetings()
 
-
     def previousWeekButtonClicked(self):
         self.dateRefresh(-1)
 
-
     def nextWeekButtonClicked(self):
         self.dateRefresh(1)
-
 
     def loadMeetings(self):
         for label in self.meetingLabels:
@@ -142,13 +163,12 @@ class SchedulerWindow(QMainWindow):
         w = self.currentWeekStart.isocalendar().week
         if (y in self.meetings) and (w in self.meetings[y]):
             for meeting in self.meetings[y][w]:
-                label = QLabel()
+                label = QLabel(self.centralwidget)
                 label.setGeometry(self.tableLeft + meeting.startDate.weekday() * 100 + 2, self.tableTop + int(meeting.startTime / 2.5), 96, int(meeting.length / 2.5))
                 label.setText(meeting.title)
                 label.setStyleSheet("background-color:#315dd6;padding:2px;border-radius:2px;")
                 label.meeting = meeting
                 label.mouseDoubleClickEvent = self.meetingLabelDoubleClicked
-                label.setParent(self.centralwidget)
                 label.show()
                 self.meetingLabels.append(label)
 

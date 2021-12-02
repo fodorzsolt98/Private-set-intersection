@@ -1,17 +1,11 @@
-from PyQt5.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QLineEdit, QWidget, QComboBox, QTextEdit
 from functools import partial
-import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QPushButton, QMenu, QMenuBar
-from PyQt5.QtGui import QPainter, QPen, QRegularExpressionValidator
-from PyQt5.QtCore import Qt, QEventLoop, QRegularExpression
+from PyQt5.QtWidgets import QMainWindow, QLabel, QWidget, QPushButton, QLineEdit, QComboBox, QTextEdit
+from PyQt5.QtGui import QRegularExpressionValidator
+from PyQt5.QtCore import QRegularExpression, Qt
 from datetime import date, timedelta
-from random import randint, choice
 from Meeting import Meeting
-from MeetingInfoPage import MeetingInfoPage
-import sys
-import string
 
-class SchedulerWindow(QMainWindow):
+class AddNewMeetingPage(QMainWindow):
     def __init__(self):
         super().__init__()
         self.title='Reserve new meeting'
@@ -20,12 +14,14 @@ class SchedulerWindow(QMainWindow):
         self.dateLables = []
         self.currentWeekStart = date.today() - timedelta(days=(date.today().weekday()))
         self.meetings = []
+        self.connectToPartner = False
         self.initWindow()
         self.initUI()
 
     def initWindow(self):
         self.setWindowTitle(self.title)
         self.setFixedSize(self.width, self.height)
+        self.setWindowModality(Qt.ApplicationModal)
         self.centralwidget = QWidget(self)
         self.centralwidget.setGeometry(0, 0, self.width, self.height)
 
@@ -66,7 +62,7 @@ class SchedulerWindow(QMainWindow):
         checkTimeWithPartner = QPushButton(self.centralwidget)
         checkTimeWithPartner.setGeometry(500, 290, 150, 30)
         checkTimeWithPartner.setText('Check with partner')
-        checkTimeWithPartner.clicked.connect(self.previousWeekButtonClicked)
+        checkTimeWithPartner.clicked.connect(self.checkMeetingWithPartner)
 
         for i in range(0, len(days_list)):
 
@@ -116,6 +112,10 @@ class SchedulerWindow(QMainWindow):
         minute.addItems(['00', '15', '30', '45'])
         return hour, minute
 
+    def checkMeetingWithPartner(self):
+        self.connectToPartner = True
+        self.close()
+
     def dateRefresh(self, direction):
         self.currentWeekStart = self.currentWeekStart + timedelta(days=(direction * 7))
         for i in range(0, 7):
@@ -126,13 +126,3 @@ class SchedulerWindow(QMainWindow):
 
     def nextWeekButtonClicked(self):
         self.dateRefresh(1)
-
-
-def run_app():
-    app = QApplication(sys.argv)
-    window = SchedulerWindow()
-    window.show()
-    sys.exit(app.exec_())
-
-run_app()
-
