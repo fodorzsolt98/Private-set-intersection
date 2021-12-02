@@ -33,6 +33,13 @@ def slots_to_tuples(slot_list, meeting_time):
 
     return converted_slot_list
 
+def tuple_to_slot(slot_tuple):
+    start_hours = slot_tuple[0] // 60
+    start_minutes = slot_tuple[0] % 60
+    end_hours = slot_tuple[1] // 60
+    end_minutes = slot_tuple[1] % 60
+    return str(start_hours) + ":" + str(start_minutes) + "-" + str(end_hours) + ":" + str(end_minutes)
+
 def at(a, b, p, x):
     assert x < p
     ysq = (x ** 3 + a * x + b) % p
@@ -73,6 +80,11 @@ def create_points_list(slot_list, meeting_time, private_input):
     for point in points_list:
         multiplied_point_list.append(private_input * point)
 
-    return multiplied_point_list
+    return multiplied_point_list, slot_tuple_list
 
+def compute_common_point_list(other_party_point_list, private_value):
+    common_point_list = []
+    for point in other_party_point_list:
+        common_point_list.append(point * private_value)
 
+    return common_point_list
