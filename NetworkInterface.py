@@ -1,7 +1,9 @@
-from time import sleep
+from Client import Client
+from MessageCipher import MessageCipher
+from CustomSocket import CustomSocket
+from time import sleep, time
 from threading import Thread
 import socket
-import json
 
 
 class NetworkInterface:
@@ -11,12 +13,14 @@ class NetworkInterface:
         self.serverMaxConnection = serverMaxConnection
         self.bufferSize = bufferSize
         self.server = self.initServer()
-        self.runingServer = None
+        self.cipher = MessageCipher()
+        self.runningServer = None
         self.__serverRun = False
         self.__clientServices = []
 
     def socketInit(self):
-        soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        #soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        soc = CustomSocket(self.bufferSize, socket.AF_INET, socket.SOCK_STREAM)
         soc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         return soc
 
@@ -26,34 +30,36 @@ class NetworkInterface:
         server.listen(self.serverMaxConnection)
         return server
 
-    def jsonToBytes(self, message):
-        return json.dumps(message).encode('utf-8')
-
-    def bytesToJson(self, message):
-        return json.loads(message.decode('utf-8'))
+    def createClient(self, ip, port):
+        conn = self.socketInit()
+        conn.connect((ip, port))
+        conn.sendAllWithByteCount(self.cipher.asymmetricKey.publickey().exportKey('PEM'))
+        return Client(conn, self.cipher, MessageCipher(conn.recvAllWithByteCount()))
 
     def startServer(self):
         if not self.__serverRun:
             self.__serverRun = True
-            self.runingServer = Thread(target=self.serverService)
-            self.runingServer.start()
+            self.runningServer = Thread(target=self.serverService)
+            self.runningServer.start()
 
     def stopServer(self):
-        if self.runingServer:
+        if self.runningServer:
             self.__serverRun = False
-            self.runingServer.join()
+            self.runningServer.join()
             for clientService in self.__clientServices:
                 clientService.join()
 
     def clientService(self, conn, ip, port):
-        print(conn.recv(self.bufferSize).decode('utf-8'))
+        client = Client(conn, self.cipher, MessageCipher(conn.recvAllWithByteCount()))
+        conn.sendAllWithByteCount(self.cipher.asymmetricKey.publickey().exportKey('PEM'))
+        print(client.receiveText())
         conn.close()
 
     def serverService(self):
         while self.__serverRun:
             try:
                 print(f'server is on, active client serives {len(self.__clientServices)}')
-                self.server.settimeout(5)
+                self.server.settimeout(1)
                 (conn, (ip, port)) = self.server.accept()
                 service = Thread(target=self.clientService, args=[conn, ip, port])
                 service.start()

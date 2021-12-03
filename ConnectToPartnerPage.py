@@ -3,6 +3,7 @@ from PyQt5.QtGui import QRegularExpressionValidator
 from PyQt5.QtCore import QRegularExpression, Qt
 from MessageWindows import ErrorMessageWindow
 from functools import partial
+from time import sleep
 import socket
 
 
@@ -61,10 +62,9 @@ class ConnectToPartnerPage(QMainWindow):
 
     def testConnectionClicked(self, ip, port):
         try:
-            conn = self.networkInterface.socketInit()
-            conn.connect((ip, port))
-            conn.send('hello'.encode('utf-8'))
-            conn.close()
-        except:
-            errorWindow = ErrorMessageWindow('Connection lost', 'Error occurred while communicating with partner.')
+            client = self.networkInterface.createClient(ip, port)
+            client.sendText('encrypted hello')
+        except Exception as exc:
+            errorWindow = ErrorMessageWindow('Connection lost', str(exc))
+            #errorWindow = ErrorMessageWindow('Connection lost', 'Error occurred while communicating with partner.')
             errorWindow.exec_()

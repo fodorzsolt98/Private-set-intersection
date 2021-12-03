@@ -60,7 +60,7 @@ class SchedulerWindow(QMainWindow):
 
     def closeEvent(self, e):
         window = WarningMessageWindow('Application is closing', 'The application is closing, the server will stop and the client services will be aborted.')
-        window.exec_()
+        #window.exec_()
         self.networkInterface.stopServer()
 
     def paintEvent(self, e):
