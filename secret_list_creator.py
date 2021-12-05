@@ -7,7 +7,7 @@ import math
 
 
 def int_to_bytes(number):
-    number_bytes_length = math.ceil((len(bin(number)) - 2)  / 8)
+    number_bytes_length = math.ceil((len(bin(number)) - 2) / 8)
     return (number).to_bytes(number_bytes_length, byteorder="big")
 
 
