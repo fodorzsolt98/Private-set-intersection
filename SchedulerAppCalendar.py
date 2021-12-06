@@ -2,15 +2,14 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QPushBut
 from PyQt5.QtGui import QPainter, QPen
 from PyQt5.QtCore import Qt, QEventLoop, QSize
 from datetime import date, timedelta
-from random import randint, choice
 from Meeting import Meeting
 from MeetingInfoPage import MeetingInfoPage
 from AddNewMeetingPage import AddNewMeetingPage
 from ConnectToPartnerPage import ConnectToPartnerPage
 from NetworkInterface import NetworkInterface
 from MessageWindows import WarningMessageWindow
+from MeetingHandler import MeetingHandler
 import sys
-import string
 
 
 class SchedulerWindow(QMainWindow):
@@ -23,31 +22,14 @@ class SchedulerWindow(QMainWindow):
         self.tableLeft = 50
         self.dateLables = []
         self.currentWeekStart = date.today() - timedelta(days=(date.today().weekday()))
-        self.meetings = {}
+        self.meetingHandler = MeetingHandler()
         self.meetingLabels = []
         self.networkInterface = NetworkInterface(5555)
         self.networkInterface.startServer()
         #Remove dummy meetings in release
-        self.dummyMeetings(10, date.today() - timedelta(days=3),  date.today() - timedelta(days=10))
+        self.meetingHandler.appendMeetings(self.meetingHandler.createDummyMeetings(10, date.today() - timedelta(days=3),  date.today() - timedelta(days=10)))
         #--------------------------------
         self.initWindow()
-
-    def dummyMeetings(self, count, start, end):
-        dateDiff = abs((end - start).days)
-        for i in range(0, count):
-            rdate = start + timedelta(days=randint(0, dateDiff))
-            y = rdate.year
-            w = rdate.isocalendar().week
-            if y not in self.meetings:
-                self.meetings[y] = {}
-            if w not in self.meetings[y]:
-                self.meetings[y][w] = []
-            self.meetings[y][w].append(Meeting(
-                startDate=rdate,
-                startTime=randint(50, 260) * 5,
-                length=randint(6, 24) * 5,
-                title=''.join(choice(string.ascii_lowercase) for i in range(randint(5, 20))),
-                description=''.join(choice(string.ascii_lowercase) for i in range(randint(20, 100)))))
 
     def initWindow(self):
         self.setWindowTitle(self.title)
@@ -86,9 +68,9 @@ class SchedulerWindow(QMainWindow):
         self.menuBar.addMenu(test)
 
     def testConnection(self, e):
-        meetings = []
-        meetings.append(Meeting(date.today(), 75, 60))
-        self.connectToPartener(meetings)
+        meetingHandler = MeetingHandler()
+        meetingHandler.appendMeetings(self.meetingHandler.createMeetingSequences(date.today(), 480, 600, 30))
+        self.connectToPartener(meetingHandler)
 
     def addNewMeetingClicked(self, e):
         newMeetingPage = AddNewMeetingPage()
@@ -96,8 +78,8 @@ class SchedulerWindow(QMainWindow):
         loop = QEventLoop()
         newMeetingPage.closeEvent = lambda e: loop.quit()
         loop.exec()
-        if newMeetingPage.connectToPartner and (len(newMeetingPage.meetings) > 0):
-            self.connectToPartener(newMeetingPage.meetings)
+        if newMeetingPage.connectToPartner and (len(newMeetingPage.meetingHandler.meetings.keys()) > 0):
+            self.connectToPartener(newMeetingPage.meetingHandler)
 
     def connectToPartener(self, meetings):
         connectionPage = ConnectToPartnerPage(self.networkInterface, meetings)
@@ -161,8 +143,8 @@ class SchedulerWindow(QMainWindow):
 
         y = self.currentWeekStart.year
         w = self.currentWeekStart.isocalendar().week
-        if (y in self.meetings) and (w in self.meetings[y]):
-            for meeting in self.meetings[y][w]:
+        if (y in self.meetingHandler.meetings) and (w in self.meetingHandler.meetings[y]):
+            for meeting in self.meetingHandler.meetings[y][w]:
                 label = QLabel(self.centralwidget)
                 label.setGeometry(self.tableLeft + meeting.startDate.weekday() * 100 + 2, self.tableTop + int(meeting.startTime / 2.5), 96, int(meeting.length / 2.5))
                 label.setText(meeting.title)

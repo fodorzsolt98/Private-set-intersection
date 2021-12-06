@@ -1,14 +1,16 @@
 from Client import Client
 from MessageCipher import MessageCipher
 from CustomSocket import CustomSocket
-from time import sleep, time
+from time import sleep
 from threading import Thread
+from Coders import bytesToJson
+from MessageWindows import InformationMessageWindowWithButtons, Ok, Cancel
 import socket
 
 
 class NetworkInterface:
     def __init__(self, port, serverMaxConnection = 20, bufferSize = 2048):
-        self.serverIp = '127.0.0.1'  # '0.0.0.0'
+        self.serverIp = '0.0.0.0'
         self.serverPort = port
         self.serverMaxConnection = serverMaxConnection
         self.bufferSize = bufferSize
@@ -52,8 +54,21 @@ class NetworkInterface:
     def clientService(self, conn, ip, port):
         client = Client(conn, self.cipher, MessageCipher(conn.recvAllWithByteCount()))
         conn.sendAllWithByteCount(self.cipher.asymmetricKey.publickey().exportKey('PEM'))
+        incommingData = bytesToJson(client.receiveData())
+        weeks = incommingData['weeks']
+        meetingLength = incommingData['meetingLength']
+        print(weeks)
+        print(meetingLength)
+        #A's encrypted meetings will be received here
+        print(client.receiveData())
+        client.sendData(b'B\'s encrypted meetings will be sent here')
+        client.sendData(b'A\'s encrypted meetings with B will be sent here')
+        # The position of the chosen meeting, the name and title will be received here
+        print(client.receiveData())
+        # receive B's acceptance
         print(client.receiveText())
-        conn.close()
+        print('connection is closed')
+        client.bye()
 
     def serverService(self):
         while self.__serverRun:

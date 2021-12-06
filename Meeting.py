@@ -19,5 +19,11 @@ class Meeting:
     def getDateAndTime(self):
         return f'{self.startDate}: {self.getStartTime()} - {self.getEndTime()}'
 
+    def getYear(self):
+        return self.startDate.year
+
+    def getWeek(self):
+        return self.startDate.isocalendar().week
+
     def print(self):
         print(f'The {self.title} meeting is in {self.startDate.strftime("%Y-%m-%d")}, from {self.getStartTime()} to {self.getEndTime()}')
