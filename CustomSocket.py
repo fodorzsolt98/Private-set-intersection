@@ -41,7 +41,7 @@ class CustomSocket(socket.socket):
             lengthInt = bytesToInt(length[0:len(length)-8])
             if lengthInt > len(incomingData[dataPos:]):
                 iteration = max((lengthInt // self.bufferSize) - 1, 0)
-                incomingData = bytearray(incomingData)
+                incomingData = bytearray(incomingData[dataPos:])
                 for i in range(0, iteration):
                     incomingData.extend(super(CustomSocket, self).recv(self.bufferSize))
                 remaining = lengthInt % (self.bufferSize * iteration)

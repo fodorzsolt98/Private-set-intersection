@@ -8,7 +8,7 @@ from MeetingHandler import MeetingHandler
 from MessageWindows import WarningMessageWindowWithButtons, WarningMessageWindow
 
 class AddNewMeetingPage(QMainWindow):
-    def __init__(self):
+    def __init__(self, existingMeetings):
         super().__init__()
         self.title='Reserve new meeting'
         self.width = 720
@@ -16,6 +16,7 @@ class AddNewMeetingPage(QMainWindow):
         self.dateLables = []
         self.currentWeekStart = date.today() - timedelta(days=(date.today().weekday()))
         self.meetingHandler = MeetingHandler()
+        self.existingMeetings = existingMeetings
         self.connectToPartner = False
         self.initWindow()
         self.initUI()
@@ -116,6 +117,8 @@ class AddNewMeetingPage(QMainWindow):
 
             day = self.currentWeekStart + timedelta(days=daydiff)
             meetings = self.meetingHandler.createMeetingSequences(day, startTime, endTime, lengthTime)
+            meetings = self.meetingHandler.filterCollosions(self.existingMeetings, meetings)
+            meetings = self.meetingHandler.filterCollosions(self.meetingHandler.meetings, meetings)
             self.meetingHandler.appendMeetings(meetings)
 
             for meeting in meetings[day.year][day.isocalendar().week]:

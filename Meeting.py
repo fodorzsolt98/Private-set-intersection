@@ -17,7 +17,7 @@ class Meeting:
         return f'{"0" + str(h) if h < 10 else h}:{"0" + str(m) if m < 10 else m}'
 
     def getDateAndTime(self):
-        return f'{self.startDate}: {self.getStartTime()} - {self.getEndTime()}'
+        return f'{self.startDate.strftime("%Y-%m-%d")}: {self.getStartTime()} - {self.getEndTime()}'
 
     def getYear(self):
         return self.startDate.year

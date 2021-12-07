@@ -3,17 +3,17 @@ from MessageCipher import MessageCipher
 from CustomSocket import CustomSocket
 from time import sleep
 from threading import Thread
-from Coders import bytesToJson
-from MessageWindows import InformationMessageWindowWithButtons, Ok, Cancel
+from Coders import bytesToJson, jsonToBytes, bytesToInt
 import socket
 
 
 class NetworkInterface:
-    def __init__(self, port, serverMaxConnection = 20, bufferSize = 2048):
+    def __init__(self, meetingHandler, port, serverMaxConnection = 20, bufferSize = 2048):
         self.serverIp = '0.0.0.0'
         self.serverPort = port
         self.serverMaxConnection = serverMaxConnection
         self.bufferSize = bufferSize
+        self.meetingHandler = meetingHandler
         self.server = self.initServer()
         self.cipher = MessageCipher()
         self.runningServer = None
@@ -54,21 +54,20 @@ class NetworkInterface:
     def clientService(self, conn, ip, port):
         client = Client(conn, self.cipher, MessageCipher(conn.recvAllWithByteCount()))
         conn.sendAllWithByteCount(self.cipher.asymmetricKey.publickey().exportKey('PEM'))
-        incommingData = bytesToJson(client.receiveData())
-        weeks = incommingData['weeks']
-        meetingLength = incommingData['meetingLength']
-        print(weeks)
-        print(meetingLength)
-        #A's encrypted meetings will be received here
-        print(client.receiveData())
-        client.sendData(b'B\'s encrypted meetings will be sent here')
-        client.sendData(b'A\'s encrypted meetings with B will be sent here')
-        # The position of the chosen meeting, the name and title will be received here
-        print(client.receiveData())
-        # receive B's acceptance
-        print(client.receiveText())
-        print('connection is closed')
+        meetingTimeData = bytesToJson(client.receiveData())
+        encryptedMeetingsFromA = client.receiveData()
+        freeSlots = self.meetingHandler.createFreeSlots(meetingTimeData['weeks'], meetingTimeData['meetingLength'])
+        filteredfreeSlots = self.meetingHandler.meetingsToList(self.meetingHandler.filterCollosions(self.meetingHandler.meetings, freeSlots))
+        encryptedfreeSlots = [meeting.getDateAndTime() for meeting in filteredfreeSlots]  # These are the free slots to send, please change this to the DH encryption.
+        client.sendData(jsonToBytes(encryptedfreeSlots))
+        client.sendData(encryptedMeetingsFromA)  # These are A's meetings they need to be DH encrypted with B's key.
+        selectedMeetingPosition = bytesToInt(client.receiveData())
+        meetingTextData = bytesToJson(client.receiveData())
         client.bye()
+        selectedMeeting = filteredfreeSlots[selectedMeetingPosition]
+        selectedMeeting.title = meetingTextData['title']
+        selectedMeeting.description = meetingTextData['description']
+        self.meetingHandler.addMeeting(selectedMeeting)
 
     def serverService(self):
         while self.__serverRun:

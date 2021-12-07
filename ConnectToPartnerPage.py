@@ -3,7 +3,7 @@ from PyQt5.QtGui import QRegularExpressionValidator
 from PyQt5.QtCore import QRegularExpression, Qt
 from MessageWindows import ErrorMessageWindow
 from functools import partial
-from Coders import jsonToBytes
+from Coders import jsonToBytes, intToBytes, bytesToJson
 
 
 class ConnectToPartnerPage(QMainWindow):
@@ -60,17 +60,25 @@ class ConnectToPartnerPage(QMainWindow):
     def connectionClicked(self, ip, port):
         try:
             client = self.networkInterface.createClient(ip, port)
+            weeks = self.meetingHandler.getMeetingWeeks(self.meetingHandler.meetings)
+            meetingLength = self.meetingHandler.getAndCeheckTheLengthOfTheMeetings(self.meetingHandler.meetings)
+            self.meetingHandler.createNoiseMeeitngs(weeks, meetingLength)
             client.sendData(jsonToBytes({
-                'weeks': self.meetingHandler.getMeetingWeeks(self.meetingHandler.meetings),
-                'meetingLength': self.meetingHandler.getAndCeheckTheLengthOfTheMeetings(self.meetingHandler.meetings)
+                'weeks': weeks,
+                'meetingLength': meetingLength
             }))
-            client.sendData(b'A\'s encrypted meetings will be sent here')
-            # B's encrypted meetings will be received here
-            print(client.receiveData())
-            # A's encrypted meetings with B will be received here
-            print(client.receiveData())
-            client.sendData(b'The position of the chosen meeting, the name and title will be sent here')  # should close connection if there no meeting
-            client.sendText('accept')  # should close connection as reject
+            self.meetingHandler.appendMeetings(self.meetingHandler.createNoiseMeeitngs(weeks, meetingLength))
+            localMeetingList = self.meetingHandler.meetingsToList(self.meetingHandler.meetings)
+            encryptedLocalMeetings = [meeting.getDateAndTime() for meeting in localMeetingList]  # These are the meetings to send, please change this to the DH encryption.
+            client.sendData(jsonToBytes(encryptedLocalMeetings))
+            encryptedMeetingsFromB = bytesToJson(client.receiveData())  # These are B's meetings they need to be DH encrypted with A's key.
+            encryptedLocalMeetingsFromB = bytesToJson(client.receiveData())
+            # compare encryptedMeetingsFromB and encryptedLocalMeetingsFromB
+            client.sendData(intToBytes(0))  # should close connection if there no meeting
+            client.sendData(jsonToBytes({
+                'title': 'alma',
+                'description': 'barack'
+            }))
             client.bye()
         except Exception as exc:
             errorWindow = ErrorMessageWindow('Connection lost', str(exc))

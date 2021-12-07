@@ -1,10 +1,6 @@
 from PyQt5.QtWidgets import QMessageBox
 
 
-Ok = QMessageBox.Ok
-Cancel = QMessageBox.Cancel
-
-
 class ErrorMessageWindow(QMessageBox):
     def __init__(self, text, description):
         super().__init__()

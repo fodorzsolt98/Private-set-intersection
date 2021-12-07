@@ -24,7 +24,7 @@ class SchedulerWindow(QMainWindow):
         self.currentWeekStart = date.today() - timedelta(days=(date.today().weekday()))
         self.meetingHandler = MeetingHandler()
         self.meetingLabels = []
-        self.networkInterface = NetworkInterface(5555)
+        self.networkInterface = NetworkInterface(self.meetingHandler, 5555)
         self.networkInterface.startServer()
         #Remove dummy meetings in release
         self.meetingHandler.appendMeetings(self.meetingHandler.createDummyMeetings(10, date.today() - timedelta(days=3),  date.today() - timedelta(days=10)))
@@ -69,11 +69,11 @@ class SchedulerWindow(QMainWindow):
 
     def testConnection(self, e):
         meetingHandler = MeetingHandler()
-        meetingHandler.appendMeetings(self.meetingHandler.createMeetingSequences(date.today(), 480, 600, 30))
+        meetingHandler.appendMeetings(self.meetingHandler.createMeetingSequences(date.today(), 480, 600, 60))
         self.connectToPartener(meetingHandler)
 
     def addNewMeetingClicked(self, e):
-        newMeetingPage = AddNewMeetingPage()
+        newMeetingPage = AddNewMeetingPage(self.meetingHandler.meetings)
         newMeetingPage.show()
         loop = QEventLoop()
         newMeetingPage.closeEvent = lambda e: loop.quit()
