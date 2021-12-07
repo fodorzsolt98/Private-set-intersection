@@ -4,7 +4,10 @@ from PyQt5.QtCore import QRegularExpression, Qt
 from MessageWindows import ErrorMessageWindow
 from functools import partial
 from Coders import jsonToBytes, intToBytes, bytesToJson
-
+from secret_list_creator import create_points_list, point_list_to_dictionary, point_list_from_dictionary\
+, compute_common_point_list, compute_index_lists_for_free_slots
+import random
+import tinyec.registry as reg
 
 class ConnectToPartnerPage(QMainWindow):
     def __init__(self, networkInterface, meetingHandler):
@@ -69,15 +72,25 @@ class ConnectToPartnerPage(QMainWindow):
             }))
             self.meetingHandler.appendMeetings(self.meetingHandler.createNoiseMeeitngs(weeks, meetingLength))
             localMeetingList = self.meetingHandler.meetingsToList(self.meetingHandler.meetings)
-            encryptedLocalMeetings = [meeting.getDateAndTime() for meeting in localMeetingList]  # These are the meetings to send, please change this to the DH encryption.
-            client.sendData(jsonToBytes(encryptedLocalMeetings))
-            encryptedMeetingsFromB = bytesToJson(client.receiveData())  # These are B's meetings they need to be DH encrypted with A's key.
-            encryptedLocalMeetingsFromB = bytesToJson(client.receiveData())
+            LocalMeetings = [meeting.getDateAndTime() for meeting in localMeetingList]  # These are the meetings to send, please change this to the DH encryption.
+            private_input = random.randint(1, 100)
+            LocalMeetingsPoints, LocalMeetingsTuples = create_points_list(LocalMeetings, 15, private_input)
+
+            client.sendData(jsonToBytes(point_list_to_dictionary(LocalMeetingsPoints)))
+            MeetingsPointsFromMySlots = point_list_from_dictionary(bytesToJson(client.receiveData()))  # These are B's meetings they need to be DH encrypted with A's key.
+            CommonMeetingsPointsFromOtherParty = point_list_from_dictionary(bytesToJson(client.receiveData()))
+            CommonMeetingsPointsFromMySlots = compute_common_point_list(MeetingsPointsFromMySlots, private_input)
             # compare encryptedMeetingsFromB and encryptedLocalMeetingsFromB
-            client.sendData(intToBytes(0))  # should close connection if there no meeting
-            client.sendData(jsonToBytes({
-                'title': 'alma',
-                'description': 'barack'
+            MyIndexList, OtherPartyIndexList = compute_index_lists_for_free_slots(CommonMeetingsPointsFromMySlots
+                                                                                  , CommonMeetingsPointsFromOtherParty)
+            CommonMeetingIndex = random.randint(0, len(MyIndexList) - 1)
+            if len(MyIndexList) == 0:
+                pass # should close connection if there no meeting
+            else:
+                client.sendData(intToBytes(OtherPartyIndexList[CommonMeetingIndex]))
+                client.sendData(jsonToBytes({
+                'title': localMeetingList[CommonMeetingIndex].title,
+                'description': localMeetingList[CommonMeetingIndex].description
             }))
             client.bye()
         except Exception as exc:
