@@ -40,13 +40,10 @@ class CustomSocket(socket.socket):
         if not (indicatorPos < len(indicator)):
             lengthInt = bytesToInt(length[0:len(length)-8])
             if lengthInt > len(incomingData[dataPos:]):
-                iteration = max((lengthInt // self.bufferSize) - 1, 0)
+                iteration = math.ceil((lengthInt + dataPos) / self.bufferSize) - 1
                 incomingData = bytearray(incomingData[dataPos:])
                 for i in range(0, iteration):
                     incomingData.extend(super(CustomSocket, self).recv(self.bufferSize))
-                remaining = lengthInt % (self.bufferSize * iteration)
-                if remaining > 0:
-                    incomingData.extend(super(CustomSocket, self).recv(remaining))
             else:
                 incomingData = incomingData[dataPos:]
         return incomingData
