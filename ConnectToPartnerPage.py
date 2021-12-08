@@ -7,7 +7,7 @@ from Coders import jsonToBytes, intToBytes, bytesToJson
 from secret_list_creator import create_points_list, point_list_to_dictionary, point_list_from_dictionary\
 , compute_common_point_list, compute_index_lists_for_free_slots
 import random
-import tinyec.registry as reg
+
 
 class ConnectToPartnerPage(QMainWindow):
     def __init__(self, networkInterface, meetingHandler):
@@ -74,8 +74,9 @@ class ConnectToPartnerPage(QMainWindow):
             localMeetingList = self.meetingHandler.meetingsToList(self.meetingHandler.meetings)
             LocalMeetings = [meeting.getDateAndTime() for meeting in localMeetingList]  # These are the meetings to send, please change this to the DH encryption.
             private_input = random.randint(1, 100)
-            LocalMeetingsPoints, LocalMeetingsTuples = create_points_list(LocalMeetings, 15, private_input)
+            LocalMeetingsPoints, LocalMeetingsTuples = create_points_list(LocalMeetings, private_input)
 
+            print(point_list_to_dictionary(LocalMeetingsPoints))
             client.sendData(jsonToBytes(point_list_to_dictionary(LocalMeetingsPoints)))
             MeetingsPointsFromMySlots = point_list_from_dictionary(bytesToJson(client.receiveData()))  # These are B's meetings they need to be DH encrypted with A's key.
             CommonMeetingsPointsFromOtherParty = point_list_from_dictionary(bytesToJson(client.receiveData()))
@@ -87,10 +88,10 @@ class ConnectToPartnerPage(QMainWindow):
             if len(MyIndexList) == 0:
                 pass # should close connection if there no meeting
             else:
-                client.sendData(intToBytes(OtherPartyIndexList[CommonMeetingIndex]))
+                client.sendData(intToBytes(1))
                 client.sendData(jsonToBytes({
-                'title': localMeetingList[CommonMeetingIndex].title,
-                'description': localMeetingList[CommonMeetingIndex].description
+                'title': localMeetingList[1].title,
+                'description': localMeetingList[1].description
             }))
             client.bye()
         except Exception as exc:

@@ -1,4 +1,4 @@
-from secret_list_creator import create_points_list, compute_common_point_list, tuple_to_slot
+from secret_list_creator import create_points_list, compute_common_point_list, tuple_to_slot, point_list_to_dictionary
 import random
 
 Alice_prefered_times = ["13:30-14:45", "09:30-10:00", "12:15-13:00"]
@@ -13,6 +13,8 @@ Bob_points, Bob_tuples = create_points_list(Bob_prefered_times, 15, Bob_private_
 
 Alice_common_point_list = compute_common_point_list(Bob_points, Alice_private_input)
 Bob_common_point_list = compute_common_point_list(Alice_points, Bob_private_input)
+
+dicti = point_list_to_dictionary(Alice_common_point_list)
 
 Alice_index_list = []
 Bob_index_list = []

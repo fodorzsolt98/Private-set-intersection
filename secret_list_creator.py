@@ -26,29 +26,18 @@ def point_list_from_dictionary(point_dictionary):
     return points_list
 
 
-def slots_to_tuples(slot_list, meeting_time):
-    if not(meeting_time == 15 or meeting_time == 30 or meeting_time == 60):
-        raise Exception("15, 30 or 60 minutes long meetings can be scheduled only.")
+def slots_to_tuples(slot_list):
     converted_slot_list = []
     for slot in slot_list:
-        date, daytime = slot.split("-", 1)
+        date, daytime = slot.split(":", 1)
         start_time, end_time = daytime.split("-")
-        first_start = int(start_time.split(":")[0]) * 60 + int(start_time.split(":")[1])
-        last_end = int(end_time.split(":")[0]) * 60 + int(end_time.split(":")[1])
+        start_integer = int(start_time.split(":")[0]) * 60 + int(start_time.split(":")[1])
+        end_integer = int(end_time.split(":")[0]) * 60 + int(end_time.split(":")[1])
 
         year, month, day = date.split("-")
 
-        meeting_start = first_start
-
-        all_slots_added = False
-
-        while not all_slots_added:
-            if meeting_start + meeting_time <= last_end:
-                converted_slot_list.append((int(year + month + day + str(meeting_start))
-                                            , int(year + month + day + str(meeting_start + meeting_time))))
-                meeting_start = meeting_start + 15
-                if meeting_start >= last_end:
-                    all_slots_added = True
+        converted_slot_list.append((int(year + month + day + str(start_integer))
+                                    , int(year + month + day + str(end_integer))))
 
     return converted_slot_list
 
@@ -73,8 +62,8 @@ def int_list_from_tuple_list(tuple_list):
 
     return int_list
 
-def create_points_list(slot_list, meeting_time, private_input):
-    slot_tuple_list = slots_to_tuples(slot_list, meeting_time)
+def create_points_list(slot_list, private_input):
+    slot_tuple_list = slots_to_tuples(slot_list)
 
     integer_list = int_list_from_tuple_list(slot_tuple_list)
 
