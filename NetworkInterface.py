@@ -4,18 +4,20 @@ from CustomSocket import CustomSocket
 from time import sleep
 from threading import Thread
 from Coders import bytesToJson, jsonToBytes, bytesToInt
+from PyQt5.QtCore import QMetaObject, Qt
 import socket
 import random
 from secret_list_creator import create_points_list, compute_common_point_list, point_list_to_dictionary, point_list_from_dictionary
 
 
 class NetworkInterface:
-    def __init__(self, meetingHandler, port, serverMaxConnection = 20, bufferSize = 1024):
+    def __init__(self, meetingHandler, app, port, serverMaxConnection = 20, bufferSize = 2048):
         self.serverIp = '0.0.0.0'
         self.serverPort = port
         self.serverMaxConnection = serverMaxConnection
         self.bufferSize = bufferSize
         self.meetingHandler = meetingHandler
+        self.app = app
         self.server = self.initServer()
         self.cipher = MessageCipher()
         self.runningServer = None
@@ -23,7 +25,6 @@ class NetworkInterface:
         self.__clientServices = []
 
     def socketInit(self):
-        #soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         soc = CustomSocket(self.bufferSize, socket.AF_INET, socket.SOCK_STREAM)
         soc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         return soc
@@ -54,31 +55,34 @@ class NetworkInterface:
                 clientService.join()
 
     def clientService(self, conn, ip, port):
-        client = Client(conn, self.cipher, MessageCipher(conn.recvAllWithByteCount()))
-        conn.sendAllWithByteCount(self.cipher.asymmetricKey.publickey().exportKey('PEM'))
-        meetingTimeData = bytesToJson(client.receiveData())
-        MeetingsPointsFromOtherParty = point_list_from_dictionary(bytesToJson(client.receiveData()))
-        freeSlots = self.meetingHandler.createFreeSlots(meetingTimeData['weeks'], meetingTimeData['meetingLength'])
-        filteredfreeSlots = self.meetingHandler.meetingsToList(self.meetingHandler.filterCollosions(self.meetingHandler.meetings, freeSlots))
-        LocalMeetings = [meeting.getDateAndTime() for meeting in filteredfreeSlots]  # These are the free slots to send, please change this to the DH encryption.
-        private_input = random.randint(1, 100)
-        LocalMeetingsPoints, LocalMeetingsTuples = create_points_list(LocalMeetings, private_input)
-        client.sendData(jsonToBytes(point_list_to_dictionary(LocalMeetingsPoints)))
-        CommonMeetingsPointsFromOtherParty = compute_common_point_list(MeetingsPointsFromOtherParty, private_input)
-        client.sendData(jsonToBytes(point_list_to_dictionary(CommonMeetingsPointsFromOtherParty)))  # These are A's meetings they need to be DH encrypted with B's key.
-        selectedMeetingPosition = bytesToInt(client.receiveData())
-        meetingTextData = bytesToJson(client.receiveData())
-        client.bye()
-        selectedMeeting = filteredfreeSlots[selectedMeetingPosition]
-        selectedMeeting.title = meetingTextData['title']
-        selectedMeeting.description = meetingTextData['description']
-        selectedMeeting.print()
-        self.meetingHandler.addMeeting(selectedMeeting)
+        try:
+            client = Client(conn, self.cipher, MessageCipher(conn.recvAllWithByteCount()))
+            conn.sendAllWithByteCount(self.cipher.asymmetricKey.publickey().exportKey('PEM'))
+            meetingTimeData = bytesToJson(client.receiveData())
+            meetingsPointsFromOtherParty = point_list_from_dictionary(bytesToJson(client.receiveData()))
+            freeSlots = self.meetingHandler.createFreeSlots(meetingTimeData['weeks'], meetingTimeData['meetingLength'])
+            filteredfreeSlots = self.meetingHandler.meetingsToList(self.meetingHandler.filterCollosions(self.meetingHandler.meetings, freeSlots))
+            localMeetings = [meeting.getDateAndTime() for meeting in filteredfreeSlots]
+            private_input = random.randint(1, 100)
+            localMeetingsPoints, localMeetingsTuples = create_points_list(localMeetings, private_input)
+            client.sendData(jsonToBytes(point_list_to_dictionary(localMeetingsPoints)))
+            commonMeetingsPointsFromOtherParty = compute_common_point_list(meetingsPointsFromOtherParty, private_input)
+            client.sendData(jsonToBytes(point_list_to_dictionary(commonMeetingsPointsFromOtherParty)))
+            selectedMeetingPosition = bytesToInt(client.receiveData())
+            meetingTextData = bytesToJson(client.receiveData())
+            client.bye()
+            selectedMeeting = filteredfreeSlots[selectedMeetingPosition]
+            selectedMeeting.title = meetingTextData['title']
+            selectedMeeting.description = meetingTextData['description']
+            self.meetingHandler.addMeeting(selectedMeeting)
+            QMetaObject.invokeMethod(self.app, 'loadMeetings', Qt.AutoConnection)
+        except Exception:
+            print('error')
+            conn.close()
 
     def serverService(self):
         while self.__serverRun:
             try:
-                #print(f'server is on, active client serives {len(self.__clientServices)}')
                 self.server.settimeout(1)
                 (conn, (ip, port)) = self.server.accept()
                 service = Thread(target=self.clientService, args=[conn, ip, port])

@@ -14,9 +14,10 @@ class ConnectToPartnerPage(QMainWindow):
         super().__init__()
         self.networkInterface = networkInterface
         self.meetingHandler = meetingHandler
+        self.selectedMeeting = None
         self.title = 'Connect to partner'
         self.width = 520
-        self.height = 250
+        self.height = 410
         self.initWindow()
 
 
@@ -47,56 +48,87 @@ class ConnectToPartnerPage(QMainWindow):
         port.setValidator(QRegularExpressionValidator(QRegularExpression("[0-9]{1,5}"), self))
         port.setText('5555')
 
-        connection = QPushButton(self.centralwidget)
-        connection.setGeometry(370, 50, 140, 30)
-        connection.setText('Connect')
-        connection.clicked.connect(partial(self.connectionClicked, ip.text(), int(port.text())))
+        label = QLabel(self.centralwidget)
+        label.setGeometry(10, 90, 150, 30)
+        label.setText('Meeting title:')
 
-        descriptionLabel = QTextEdit(self.centralwidget)
-        descriptionLabel.setReadOnly(True)
-        #descriptionLabel.setStyleSheet("background-color:transparent;font-size:15px;padding:2px;border-radius:2px;")
-        descriptionLabel.setGeometry(10, 90, 500, 150)
-        descriptionLabel.setText('')
+        title = QLineEdit(self.centralwidget)
+        title.setGeometry(160, 90, 200, 30)
+        title.setText('alma')
+
+        label = QLabel(self.centralwidget)
+        label.setGeometry(10, 130, 150, 30)
+        label.setText('Meeting description:')
+
+        description = QTextEdit(self.centralwidget)
+        description.setStyleSheet("font-size:15px;padding:2px;")
+        description.setGeometry(10, 170, 500, 70)
+        description.setText('barack')
+
+        logLabel = QTextEdit(self.centralwidget)
+        logLabel.setReadOnly(True)
+        logLabel.setStyleSheet("background-color:transparent;font-size:10px;padding:2px;border-radius:2px;")
+        logLabel.setGeometry(10, 250, 500, 150)
+
+        connection = QPushButton(self.centralwidget)
+        connection.setGeometry(370, 130, 140, 30)
+        connection.setText('Connect')
+        connection.clicked.connect(partial(self.connectionClicked, ip, port, title, description, logLabel))
 
         self.show()
 
-    def connectionClicked(self, ip, port):
+    def connectionClicked(self, ip, port, title, description, log):
+        client = None
         try:
-            client = self.networkInterface.createClient(ip, port)
+            client = self.networkInterface.createClient(ip.text(), int(port.text()))
+            log.append('Connected to the partner.')
             weeks = self.meetingHandler.getMeetingWeeks(self.meetingHandler.meetings)
             meetingLength = self.meetingHandler.getAndCeheckTheLengthOfTheMeetings(self.meetingHandler.meetings)
             self.meetingHandler.createNoiseMeeitngs(weeks, meetingLength)
+            log.append('Noise is added to the meetings.')
             client.sendData(jsonToBytes({
                 'weeks': weeks,
                 'meetingLength': meetingLength
             }))
+            log.append('Basic time information sent to the partner.')
             self.meetingHandler.appendMeetings(self.meetingHandler.createNoiseMeeitngs(weeks, meetingLength))
             localMeetingList = self.meetingHandler.meetingsToList(self.meetingHandler.meetings)
-            LocalMeetings = [meeting.getDateAndTime() for meeting in localMeetingList]  # These are the meetings to send, please change this to the DH encryption.
+            localMeetings = [meeting.getDateAndTime() for meeting in localMeetingList]
             private_input = random.randint(1, 100)
-            LocalMeetingsPoints, LocalMeetingsTuples = create_points_list(LocalMeetings, private_input)
-
-            client.sendData(jsonToBytes(point_list_to_dictionary(LocalMeetingsPoints)))
-            MeetingsPointsFromMySlots = point_list_from_dictionary(bytesToJson(client.receiveData()))  # These are B's meetings they need to be DH encrypted with A's key.
-            CommonMeetingsPointsFromOtherParty = point_list_from_dictionary(bytesToJson(client.receiveData()))
-            CommonMeetingsPointsFromMySlots = compute_common_point_list(MeetingsPointsFromMySlots, private_input)
-            # compare encryptedMeetingsFromB and encryptedLocalMeetingsFromB
-            MyIndexList, OtherPartyIndexList = compute_index_lists_for_free_slots(CommonMeetingsPointsFromMySlots
-                                                                                  , CommonMeetingsPointsFromOtherParty)
-            ElementOfIndexList = random.randint(0, len(MyIndexList) - 1)
-            OtherPartyIndex = OtherPartyIndexList[ElementOfIndexList]
-            MyIndex = MyIndexList[ElementOfIndexList]
-            if len(MyIndexList) == 0:
-                pass # should close connection if there no meeting
+            localMeetingsPoints, localMeetingsTuples = create_points_list(localMeetings, private_input)
+            log.append('Meetings are encrypted.')
+            client.sendData(jsonToBytes(point_list_to_dictionary(localMeetingsPoints)))
+            log.append('Meetings sent to the partner')
+            meetingsPointsFromMySlots = point_list_from_dictionary(bytesToJson(client.receiveData()))
+            log.append('Own meetings encrypted by partner too are received.')
+            commonMeetingsPointsFromOtherParty = point_list_from_dictionary(bytesToJson(client.receiveData()))
+            log.append('Partner\'s meetings are received')
+            commonMeetingsPointsFromMySlots = compute_common_point_list(meetingsPointsFromMySlots, private_input)
+            myIndexList, otherPartyIndexList = compute_index_lists_for_free_slots(commonMeetingsPointsFromMySlots, commonMeetingsPointsFromOtherParty)
+            elementOfIndexList = random.randint(0, len(myIndexList) - 1)
+            otherPartyIndex = otherPartyIndexList[elementOfIndexList]
+            myIndex = myIndexList[elementOfIndexList]
+            if len(myIndexList) == 0:
+                log.append('No common meeting')
+                client.bye()
             else:
-                client.sendData(intToBytes(OtherPartyIndex))
+                log.append('Common meeting found.')
+                client.sendData(intToBytes(otherPartyIndex))
                 client.sendData(jsonToBytes({
-                'title': "alma",#localMeetingList[MyIndex].title,
-                'description': "körte"#localMeetingList[MyIndex].description
-            }))
-            localMeetingList[MyIndex].print()
+                    'title': title.text(),
+                    'description': description.toPlainText()
+                }))
+                log.append('Meeting title and description sent.')
             client.bye()
+            log.append('Connection closed.')
+            self.selectedMeeting = localMeetingList[myIndex]
+            self.selectedMeeting.title = title.text()
+            self.selectedMeeting.description = description.toPlainText()
+            log.append('Selected meeting will be added to the meetings after this window is closed.')
+            self.close()
         except Exception as exc:
-            errorWindow = ErrorMessageWindow('Connection lost', str(exc))
-            #errorWindow = ErrorMessageWindow('Connection lost', 'Error occurred while communicating with partner.')
+            if client:
+                client.bye()
+            #errorWindow = ErrorMessageWindow('Connection lost', str(exc))
+            errorWindow = ErrorMessageWindow('Connection lost', 'Error occurred while communicating with partner.')
             errorWindow.exec_()

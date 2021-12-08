@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QPushButton, QMenu, QMenuBar
 from PyQt5.QtGui import QPainter, QPen
-from PyQt5.QtCore import Qt, QEventLoop, QSize
+from PyQt5.QtCore import Qt, QEventLoop, pyqtSlot
 from datetime import date, timedelta
 from Meeting import Meeting
 from MeetingInfoPage import MeetingInfoPage
@@ -24,8 +24,9 @@ class SchedulerWindow(QMainWindow):
         self.currentWeekStart = date.today() - timedelta(days=(date.today().weekday()))
         self.meetingHandler = MeetingHandler()
         self.meetingLabels = []
-        self.networkInterface = NetworkInterface(self.meetingHandler, 5555)
+        self.networkInterface = NetworkInterface(self.meetingHandler, self, 5555)
         self.networkInterface.startServer()
+        self.reloadListeners = []
         #Remove dummy meetings in release
         self.meetingHandler.appendMeetings(self.meetingHandler.createDummyMeetings(10, date.today() - timedelta(days=3),  date.today() - timedelta(days=10)))
         #--------------------------------
@@ -62,10 +63,10 @@ class SchedulerWindow(QMainWindow):
         self.setMenuBar(self.menuBar)
         addNew = QMenu('&Add new', self)
         addNew.mouseReleaseEvent = self.addNewMeetingClicked
-        test = QMenu('&test connetcion', self)
-        test.mouseReleaseEvent = self.testConnection
+        #test = QMenu('&test connetcion', self)
+        #test.mouseReleaseEvent = self.testConnection
         self.menuBar.addMenu(addNew)
-        self.menuBar.addMenu(test)
+        #self.menuBar.addMenu(test)
 
     def testConnection(self, e):
         meetingHandler = MeetingHandler()
@@ -87,6 +88,9 @@ class SchedulerWindow(QMainWindow):
         loop = QEventLoop()
         connectionPage.closeEvent = lambda e: loop.quit()
         loop.exec()
+        if connectionPage.selectedMeeting:
+            self.meetingHandler.addMeeting(connectionPage.selectedMeeting)
+            self.loadMeetings()
 
     def initTableGUI(self):
         daysList = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
@@ -136,6 +140,7 @@ class SchedulerWindow(QMainWindow):
     def nextWeekButtonClicked(self):
         self.dateRefresh(1)
 
+    @pyqtSlot()
     def loadMeetings(self):
         for label in self.meetingLabels:
             label.deleteLater()
