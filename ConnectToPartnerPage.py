@@ -5,7 +5,7 @@ from MessageWindows import ErrorMessageWindow
 from functools import partial
 from Coders import jsonToBytes, intToBytes, bytesToJson
 from secret_list_creator import create_points_list, point_list_to_dictionary, point_list_from_dictionary\
-, compute_common_point_list, compute_index_lists_for_free_slots
+, compute_common_point_list, compute_index_lists_for_free_slots, get_noise_meetings_indices
 import random
 
 
@@ -84,16 +84,19 @@ class ConnectToPartnerPage(QMainWindow):
             log.append('Connected to the partner.')
             weeks = self.meetingHandler.getMeetingWeeks(self.meetingHandler.meetings)
             meetingLength = self.meetingHandler.getAndCeheckTheLengthOfTheMeetings(self.meetingHandler.meetings)
-            self.meetingHandler.createNoiseMeeitngs(weeks, meetingLength)
+            noiseMeetingsDict = self.meetingHandler.createNoiseMeeitngs(weeks, meetingLength)
             log.append('Noise is added to the meetings.')
             client.sendData(jsonToBytes({
                 'weeks': weeks,
                 'meetingLength': meetingLength
             }))
             log.append('Basic time information sent to the partner.')
-            self.meetingHandler.appendMeetings(self.meetingHandler.createNoiseMeeitngs(weeks, meetingLength))
+            #self.meetingHandler.appendMeetings(noiseMeetingsDict)
+            noiseMeetingsList = self.meetingHandler.meetingsToList(noiseMeetingsDict)
             localMeetingList = self.meetingHandler.meetingsToList(self.meetingHandler.meetings)
             localMeetings = [meeting.getDateAndTime() for meeting in localMeetingList]
+            noiseMeetings = [meeting.getDateAndTime() for meeting in noiseMeetingsList]
+            noiseMeetingsIndices = get_noise_meetings_indices(localMeetings, noiseMeetings)
             private_input = random.randint(1, 100)
             localMeetingsPoints, localMeetingsTuples = create_points_list(localMeetings, private_input)
             log.append('Meetings are encrypted.')
@@ -105,13 +108,21 @@ class ConnectToPartnerPage(QMainWindow):
             log.append('Partner\'s meetings are received')
             commonMeetingsPointsFromMySlots = compute_common_point_list(meetingsPointsFromMySlots, private_input)
             myIndexList, otherPartyIndexList = compute_index_lists_for_free_slots(commonMeetingsPointsFromMySlots, commonMeetingsPointsFromOtherParty)
-            elementOfIndexList = random.randint(0, len(myIndexList) - 1)
-            otherPartyIndex = otherPartyIndexList[elementOfIndexList]
-            myIndex = myIndexList[elementOfIndexList]
             if len(myIndexList) == 0:
                 log.append('No common meeting')
                 client.bye()
             else:
+                for noise_index in noiseMeetingsIndices:
+                    if noise_index in myIndexList:
+                        index_of_noise_index = myIndexList.index(noise_index)
+                        del myIndexList[index_of_noise_index]
+                        del otherPartyIndexList[index_of_noise_index]
+                if len(myIndexList) == 0:
+                    log.append('No common meeting')
+                    client.bye()
+                elementOfIndexList = random.randint(0, len(myIndexList) - 1)
+                otherPartyIndex = otherPartyIndexList[elementOfIndexList]
+                myIndex = myIndexList[elementOfIndexList]
                 log.append('Common meeting found.')
                 client.sendData(intToBytes(otherPartyIndex))
                 client.sendData(jsonToBytes({
@@ -119,13 +130,13 @@ class ConnectToPartnerPage(QMainWindow):
                     'description': description.toPlainText()
                 }))
                 log.append('Meeting title and description sent.')
-            client.bye()
-            log.append('Connection closed.')
-            self.selectedMeeting = localMeetingList[myIndex]
-            self.selectedMeeting.title = title.text()
-            self.selectedMeeting.description = description.toPlainText()
-            log.append('Selected meeting will be added to the meetings after this window is closed.')
-            self.close()
+                client.bye()
+                log.append('Connection closed.')
+                self.selectedMeeting = localMeetingList[myIndex]
+                self.selectedMeeting.title = title.text()
+                self.selectedMeeting.description = description.toPlainText()
+                log.append('Selected meeting will be added to the meetings after this window is closed.')
+                self.close()
         except Exception as exc:
             if client:
                 client.bye()

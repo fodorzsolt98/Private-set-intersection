@@ -25,6 +25,18 @@ def point_list_from_dictionary(point_dictionary):
 
     return points_list
 
+def get_noise_meetings_indices(meetings_list, noise_meetings_list):
+    noise_meetings_indices = []
+    for noise_meeting in noise_meetings_list:
+        i = 0
+        found = False
+        while i < len(meetings_list) and not found:
+            if meetings_list[i] == noise_meeting:
+                noise_meetings_indices.append(i)
+                found = True
+            i = i + 1
+
+    return noise_meetings_indices
 
 def slots_to_tuples(slot_list):
     converted_slot_list = []
@@ -45,11 +57,8 @@ def tuple_to_slot(slot_tuple):
     start_full = str(slot_tuple[0])
     end_full = str(slot_tuple[1])
     start_year = start_full[0:4]
-    end_year = end_full[0:4]
     start_month = start_full[4:6]
-    end_month = end_full[4:6]
     start_day = start_full[6:8]
-    end_day = end_full[6:8]
     start_time_integer = int(start_full[8:])
     end_time_integer = int(end_full[8:])
     start_hours = start_time_integer // 60
