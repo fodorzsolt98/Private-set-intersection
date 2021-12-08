@@ -5,10 +5,12 @@ from time import sleep
 from threading import Thread
 from Coders import bytesToJson, jsonToBytes, bytesToInt
 import socket
+import random
+from secret_list_creator import create_points_list, compute_common_point_list, point_list_to_dictionary, point_list_from_dictionary
 
 
 class NetworkInterface:
-    def __init__(self, meetingHandler, port, serverMaxConnection = 20, bufferSize = 2048):
+    def __init__(self, meetingHandler, port, serverMaxConnection = 20, bufferSize = 1024):
         self.serverIp = '0.0.0.0'
         self.serverPort = port
         self.serverMaxConnection = serverMaxConnection
@@ -55,12 +57,18 @@ class NetworkInterface:
         client = Client(conn, self.cipher, MessageCipher(conn.recvAllWithByteCount()))
         conn.sendAllWithByteCount(self.cipher.asymmetricKey.publickey().exportKey('PEM'))
         meetingTimeData = bytesToJson(client.receiveData())
-        encryptedMeetingsFromA = client.receiveData()
+        print("Receiver")
+        x = client.receiveData()
+        print(x)
+        MeetingsPointsFromOtherParty = point_list_from_dictionary(bytesToJson(x))
         freeSlots = self.meetingHandler.createFreeSlots(meetingTimeData['weeks'], meetingTimeData['meetingLength'])
         filteredfreeSlots = self.meetingHandler.meetingsToList(self.meetingHandler.filterCollosions(self.meetingHandler.meetings, freeSlots))
-        encryptedfreeSlots = [meeting.getDateAndTime() for meeting in filteredfreeSlots]  # These are the free slots to send, please change this to the DH encryption.
-        client.sendData(jsonToBytes(encryptedfreeSlots))
-        client.sendData(encryptedMeetingsFromA)  # These are A's meetings they need to be DH encrypted with B's key.
+        LocalMeetings = [meeting.getDateAndTime() for meeting in filteredfreeSlots]  # These are the free slots to send, please change this to the DH encryption.
+        private_input = random.randint(1, 100)
+        LocalMeetingsPoints, LocalMeetingsTuples = create_points_list(LocalMeetings, private_input)
+        client.sendData(jsonToBytes(point_list_to_dictionary(LocalMeetingsPoints)))
+        CommonMeetingsPointsFromOtherParty = compute_common_point_list(MeetingsPointsFromOtherParty, private_input)
+        client.sendData(jsonToBytes(point_list_to_dictionary(CommonMeetingsPointsFromOtherParty)))  # These are A's meetings they need to be DH encrypted with B's key.
         selectedMeetingPosition = bytesToInt(client.receiveData())
         meetingTextData = bytesToJson(client.receiveData())
         client.bye()
