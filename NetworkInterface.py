@@ -57,10 +57,7 @@ class NetworkInterface:
         client = Client(conn, self.cipher, MessageCipher(conn.recvAllWithByteCount()))
         conn.sendAllWithByteCount(self.cipher.asymmetricKey.publickey().exportKey('PEM'))
         meetingTimeData = bytesToJson(client.receiveData())
-        print("Receiver")
-        x = client.receiveData()
-        print(x)
-        MeetingsPointsFromOtherParty = point_list_from_dictionary(bytesToJson(x))
+        MeetingsPointsFromOtherParty = point_list_from_dictionary(bytesToJson(client.receiveData()))
         freeSlots = self.meetingHandler.createFreeSlots(meetingTimeData['weeks'], meetingTimeData['meetingLength'])
         filteredfreeSlots = self.meetingHandler.meetingsToList(self.meetingHandler.filterCollosions(self.meetingHandler.meetings, freeSlots))
         LocalMeetings = [meeting.getDateAndTime() for meeting in filteredfreeSlots]  # These are the free slots to send, please change this to the DH encryption.
@@ -75,12 +72,13 @@ class NetworkInterface:
         selectedMeeting = filteredfreeSlots[selectedMeetingPosition]
         selectedMeeting.title = meetingTextData['title']
         selectedMeeting.description = meetingTextData['description']
+        selectedMeeting.print()
         self.meetingHandler.addMeeting(selectedMeeting)
 
     def serverService(self):
         while self.__serverRun:
             try:
-                print(f'server is on, active client serives {len(self.__clientServices)}')
+                #print(f'server is on, active client serives {len(self.__clientServices)}')
                 self.server.settimeout(1)
                 (conn, (ip, port)) = self.server.accept()
                 service = Thread(target=self.clientService, args=[conn, ip, port])

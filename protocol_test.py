@@ -1,15 +1,18 @@
 from secret_list_creator import create_points_list, compute_common_point_list, tuple_to_slot, point_list_to_dictionary
 import random
 
-Alice_prefered_times = ["13:30-14:45", "09:30-10:00", "12:15-13:00"]
+Alice_prefered_times = ["2021-12-10:13:30-13:45", "2021-12-10:13:45-14:00", "2021-12-10:09:30-09:45", "2021-12-10:09:45-10:00"
+                        , "2021-12-10:12:15-12:30", "2021-12-10:12:30-12:45", "2021-12-10:12:45-13:00"]
 
-Bob_prefered_times = ["14:30-14:45", "08:30-09:00", "12:00-12:15", "15:00-16:30"]
+Bob_prefered_times = ["2021-12-10:14:30-14:45", "2021-12-10:08:30-08:45", "2021-12-10:08:45-09:00", "2021-12-10:12:00-12:15"
+                        , "2021-12-10:15:15-15:30", "2021-12-10:15:30-15:45", "2021-12-10:15:45-16:00"
+                        , "2021-12-10:16:0-16:15","2021-12-10:16:15-16:30"]
 
 Alice_private_input = random.randint(1, 100)
 Bob_private_input = random.randint(1, 100)
 
-Alice_points, Alice_tuples = create_points_list(Alice_prefered_times, 15, Alice_private_input)
-Bob_points, Bob_tuples = create_points_list(Bob_prefered_times, 15, Bob_private_input)
+Alice_points, Alice_tuples = create_points_list(Alice_prefered_times, Alice_private_input)
+Bob_points, Bob_tuples = create_points_list(Bob_prefered_times, Bob_private_input)
 
 Alice_common_point_list = compute_common_point_list(Bob_points, Alice_private_input)
 Bob_common_point_list = compute_common_point_list(Alice_points, Bob_private_input)

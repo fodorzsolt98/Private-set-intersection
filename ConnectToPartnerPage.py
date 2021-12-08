@@ -76,7 +76,6 @@ class ConnectToPartnerPage(QMainWindow):
             private_input = random.randint(1, 100)
             LocalMeetingsPoints, LocalMeetingsTuples = create_points_list(LocalMeetings, private_input)
 
-            print(point_list_to_dictionary(LocalMeetingsPoints))
             client.sendData(jsonToBytes(point_list_to_dictionary(LocalMeetingsPoints)))
             MeetingsPointsFromMySlots = point_list_from_dictionary(bytesToJson(client.receiveData()))  # These are B's meetings they need to be DH encrypted with A's key.
             CommonMeetingsPointsFromOtherParty = point_list_from_dictionary(bytesToJson(client.receiveData()))
@@ -84,15 +83,18 @@ class ConnectToPartnerPage(QMainWindow):
             # compare encryptedMeetingsFromB and encryptedLocalMeetingsFromB
             MyIndexList, OtherPartyIndexList = compute_index_lists_for_free_slots(CommonMeetingsPointsFromMySlots
                                                                                   , CommonMeetingsPointsFromOtherParty)
-            CommonMeetingIndex = random.randint(0, len(MyIndexList) - 1)
+            ElementOfIndexList = random.randint(0, len(MyIndexList) - 1)
+            OtherPartyIndex = OtherPartyIndexList[ElementOfIndexList]
+            MyIndex = MyIndexList[ElementOfIndexList]
             if len(MyIndexList) == 0:
                 pass # should close connection if there no meeting
             else:
-                client.sendData(intToBytes(1))
+                client.sendData(intToBytes(OtherPartyIndex))
                 client.sendData(jsonToBytes({
-                'title': localMeetingList[1].title,
-                'description': localMeetingList[1].description
+                'title': "alma",#localMeetingList[MyIndex].title,
+                'description': "körte"#localMeetingList[MyIndex].description
             }))
+            localMeetingList[MyIndex].print()
             client.bye()
         except Exception as exc:
             errorWindow = ErrorMessageWindow('Connection lost', str(exc))
