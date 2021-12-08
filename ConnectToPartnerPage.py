@@ -50,7 +50,7 @@ class ConnectToPartnerPage(QMainWindow):
         connection = QPushButton(self.centralwidget)
         connection.setGeometry(370, 50, 140, 30)
         connection.setText('Connect')
-        connection.clicked.connect(partial(self.connectionClicked, ip.text(), int(port.text())))
+        connection.clicked.connect(partial(self.connectionClicked, ip, port))
 
         descriptionLabel = QTextEdit(self.centralwidget)
         descriptionLabel.setReadOnly(True)
@@ -62,7 +62,7 @@ class ConnectToPartnerPage(QMainWindow):
 
     def connectionClicked(self, ip, port):
         try:
-            client = self.networkInterface.createClient(ip, port)
+            client = self.networkInterface.createClient(ip.text(), int(port.text()))
             weeks = self.meetingHandler.getMeetingWeeks(self.meetingHandler.meetings)
             meetingLength = self.meetingHandler.getAndCeheckTheLengthOfTheMeetings(self.meetingHandler.meetings)
             self.meetingHandler.createNoiseMeeitngs(weeks, meetingLength)

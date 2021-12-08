@@ -42,11 +42,22 @@ def slots_to_tuples(slot_list):
     return converted_slot_list
 
 def tuple_to_slot(slot_tuple):
-    start_hours = slot_tuple[0] // 60
-    start_minutes = slot_tuple[0] % 60
-    end_hours = slot_tuple[1] // 60
-    end_minutes = slot_tuple[1] % 60
-    return str(start_hours) + ":" + str(start_minutes) + "-" + str(end_hours) + ":" + str(end_minutes)
+    start_full = str(slot_tuple[0])
+    end_full = str(slot_tuple[1])
+    start_year = start_full[0:4]
+    end_year = end_full[0:4]
+    start_month = start_full[4:6]
+    end_month = end_full[4:6]
+    start_day = start_full[6:8]
+    end_day = end_full[6:8]
+    start_time_integer = int(start_full[8:])
+    end_time_integer = int(end_full[8:])
+    start_hours = start_time_integer // 60
+    start_minutes = start_time_integer % 60
+    end_hours = end_time_integer // 60
+    end_minutes = end_time_integer % 60
+    return start_year + "-" + start_month + "-" + start_day + ":" +str(start_hours) + ":" + str(start_minutes) + "-"\
+           + str(end_hours) + ":" + str(end_minutes)
 
 def at(a, b, p, x):
     assert x < p
